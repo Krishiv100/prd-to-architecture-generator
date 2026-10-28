@@ -73,6 +73,23 @@ uv run python -m src.gui
 uv run python -m src.main --gui
 ```
 
+---
+
+## ⚡ Deploy to Vercel (One-Click Serverless)
+
+The repository is configured for serverless deployment on [Vercel](https://vercel.com):
+
+1. Push your repository to GitHub:
+   ```bash
+   git push origin main
+   ```
+2. Log into [vercel.com](https://vercel.com) and click **"Add New"** > **"Project"**.
+3. Import your `prd-to-architecture-generator` GitHub repository.
+4. Leave all build settings at their defaults (Vercel automatically detects [`vercel.json`](file:///e:/IIITV-ICD/Semester%205/prd-to-architecture-generator/vercel.json) and [`requirements.txt`](file:///e:/IIITV-ICD/Semester%205/prd-to-architecture-generator/requirements.txt)).
+5. Click **Deploy**! 🚀
+
+Your ChatGPT-style Architecture Studio will be live on a public `*.vercel.app` domain.
+
 #### What it looks like:
 * **Conversational Chat Interface**: Type or paste any prompt into the floating message bar (e.g. *"Design an Uber clone with 35k RPS and GPS tracking"*).
 * **Document Attachment (📎)**: Attach any `.txt`, `.md`, `.json` requirements file, or drag-and-drop directly into the chat window.
