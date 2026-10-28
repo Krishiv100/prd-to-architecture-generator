@@ -1,0 +1,30 @@
+baseline:
+  - "TLS 1.3 In-Transit Encryption"
+  - "OAuth2 / OIDC Authentication (JWT)"
+  - "Rate Limiting & DDoS Protection at API Gateway"
+
+standards:
+  PII:
+    - "AES-256 KMS Encryption at Rest"
+    - "Field-Level PII Tokenization & Masking"
+    - "Automated GDPR Right-to-Erasure Workflows"
+  GDPR:
+    - "AES-256 KMS Encryption at Rest"
+    - "Field-Level PII Tokenization & Masking"
+    - "Automated GDPR Right-to-Erasure Workflows"
+    - "Consent & Cookie Audit Management"
+  PCI-DSS:
+    - "Isolated Cardholder Data Environment (CDE) VPC Subnet"
+    - "Web Application Firewall (WAF) with OWASP Core Ruleset"
+    - "Dedicated HSM / HashiCorp Vault for Payment Cryptographic Keys"
+  HIPAA:
+    - "BAA-Compliant Encrypted Cloud Storage"
+    - "Immutable Access & PHI Audit Logging"
+    - "Emergency Access Control & Automatic Session Termination"
+  SOC2:
+    - "Centralized SIEM Log Aggregation"
+    - "Role-Based Access Control (RBAC) with Least Privilege"
+    - "Automated Continuous Compliance Drift Monitoring"
+  ISO27001:
+    - "Information Security Management System (ISMS) Continuous Audit"
+    - "Vulnerability Scanning & Penetration Testing CI/CD Gate"

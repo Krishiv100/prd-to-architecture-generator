@@ -1,0 +1,16 @@
+[project]
+name = "prd-to-architecture-generator"
+version = "0.1.0"
+description = "Deterministic Multi-Agent PRD-to-Architecture Generator"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.5.0",
+    "pyyaml>=6.0.1",
+    "jinja2>=3.1.2",
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

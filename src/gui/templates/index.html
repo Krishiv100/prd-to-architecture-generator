@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Agent PRD-to-Architecture Studio</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Mermaid.js for Diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Marked.js for Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #09090b;
+      --bg-sidebar: #0f0f12;
+      --bg-card: #15151a;
+      --bg-card-hover: #1c1c22;
+      --bg-input: #1a1a20;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: #38bdf8;
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.25);
+      --accent: #818cf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Fira Code', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+
+    /* Glassmorphism scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+    /* ==========================================================================
+       Sidebar (Clean Minimal Obsidian)
+       ========================================================================== */
+    .sidebar {
+      width: 270px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 40;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .btn-new-chat {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(99, 102, 241, 0.1));
+      color: #fff;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-new-chat:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2));
+      border-color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
+    }
+
+    .sidebar-section-title {
+      padding: 1rem 1rem 0.4rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.4rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+    }
+
+    .sidebar-item:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: var(--border-color);
+      transform: translateX(2px);
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(18, 18, 22, 0.5);
+    }
+
+    .sidebar-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    /* ==========================================================================
+       Main Chat Experience
+       ========================================================================== */
+    .chat-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+      background: var(--bg-main);
+      overflow: hidden;
+    }
+
+    /* Top Nav Bar */
+    .chat-header {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(12px);
+      z-index: 20;
+    }
+
+    .chat-header-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      letter-spacing: -0.01em;
+    }
+
+    .badge-status {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Messages Stream */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1rem 8rem 1rem;
+      scroll-behavior: smooth;
+    }
+
+    .chat-container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Hero Screen */
+    .hero-welcome {
+      text-align: center;
+      margin-top: 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      animation: fadeInSlideUp 0.5s ease-out;
+    }
+
+    .hero-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.4);
+      animation: floatLogo 4s ease-in-out infinite;
+    }
+
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .hero-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      line-height: 1.6;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.85rem;
+      max-width: 760px;
+      width: 100%;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 680px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    .hero-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 1.1rem 1.25rem;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.22s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.4), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .hero-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-card:hover::before { opacity: 1; }
+
+    .hero-card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .hero-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Message Bubbles */
+    .message-row {
+      display: flex;
+      gap: 1.15rem;
+      width: 100%;
+      animation: fadeInSlideUp 0.35s ease-out;
+    }
+
+    @keyframes fadeInSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .user-row .message-avatar { background: #2563eb; }
+    .assistant-row .message-avatar {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.3);
+    }
+
+    .message-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow: hidden;
+    }
+
+    .user-bubble {
+      background: #1e1e24;
+      padding: 0.95rem 1.25rem;
+      border-radius: 14px;
+      font-size: 0.94rem;
+      line-height: 1.55;
+      color: var(--text-main);
+      max-width: 85%;
+      border: 1px solid var(--border-color);
+      white-space: pre-wrap;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Assistant Architecture Card */
+    .assistant-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .assistant-card-header {
+      padding: 1rem 1.4rem;
+      background: #101014;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .project-header-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Collapsible Agent Reasoning Trace Accordion */
+    .agent-reasoning-accordion {
+      background: #111115;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.8rem;
+    }
+
+    .accordion-trigger {
+      padding: 0.65rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: var(--text-muted);
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .accordion-trigger:hover {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-main);
+    }
+
+    .accordion-body {
+      display: none;
+      padding: 0.75rem 1.4rem 1rem 1.4rem;
+      background: #0d0d10;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .accordion-body.open { display: flex; }
+
+    .trace-item {
+      display: flex;
+      gap: 0.75rem;
+      line-height: 1.45;
+    }
+
+    .trace-icon { font-size: 1rem; flex-shrink: 0; }
+    .trace-text { color: var(--text-muted); font-size: 0.78rem; }
+    .trace-text strong { color: var(--text-main); }
+
+    /* NFR Metrix Strip */
+    .nfr-strip {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      padding: 0.75rem 1.4rem;
+      background: #131317;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.8rem;
+    }
+
+    .pill {
+      background: #1c1c22;
+      border: 1px solid var(--border-color);
+      padding: 0.3rem 0.65rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pill .k { color: var(--text-dim); text-transform: uppercase; font-size: 0.68rem; font-weight: 700; }
+    .pill .v { color: var(--text-main); font-family: var(--font-mono); font-weight: 600; }
+    .pill.highlight { border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); color: var(--primary); }
+    .pill.warn { border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.08); color: var(--warning); }
+    .pill.green { border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); color: var(--success); }
+
+    /* Interactive Live Tuning Simulator Bar */
+    .simulator-bar {
+      padding: 0.65rem 1.4rem;
+      background: linear-gradient(90deg, #101014, #14141a);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+
+    .sim-label {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+    }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .sim-btn {
+      background: #202028;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sim-btn:hover, .sim-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Card Tabs */
+    .card-tabs {
+      display: flex;
+      background: #0f0f13;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 0.75rem;
+      overflow-x: auto;
+    }
+
+    .tab-item {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      padding: 0.75rem 0.95rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab-item:hover { color: var(--text-main); }
+    .tab-item.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 700;
+    }
+
+    .card-body {
+      padding: 1.4rem;
+      min-height: 380px;
+      max-height: 620px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* Diagram Canvas */
+    .diagram-pane {
+      background: #0b0b0e;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+    }
+
+    .diagram-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 0.35rem;
+      background: rgba(18, 18, 22, 0.9);
+      padding: 0.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .diagram-controls button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.88rem;
+    }
+
+    .diagram-controls button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* Code Viewers */
+    .code-box {
+      background: #0b0b0e;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      color: #e4e4e7;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Capacity Grid Card */
+    .capacity-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .capacity-grid { grid-template-columns: 1fr; }
+    }
+
+    .cap-card {
+      background: #101014;
+      border: 1px solid var(--border-color);
+      padding: 1rem;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .cap-card .cap-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+    .cap-card .cap-val { font-size: 1.1rem; color: #fff; font-weight: 800; font-family: var(--font-mono); }
+    .cap-card .cap-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* Critic Findings Table */
+    .critic-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .critic-table th {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      background: #101014;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .critic-table td {
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid #1c1c22;
+      vertical-align: top;
+    }
+
+    .badge-sev {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .badge-sev.CRITICAL { background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
+    .badge-sev.WARNING { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+    .badge-sev.INFO { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+
+    /* Action bar on message */
+    .message-actions-bar {
+      display: flex;
+      gap: 0.6rem;
+      padding: 0.75rem 1.4rem;
+      background: #101014;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* ==========================================================================
+       Bottom Floating Input Bar (ChatGPT Signature Glow)
+       ========================================================================== */
+    .input-dock {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1rem 1.25rem 1.5rem 1.25rem;
+      background: linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, rgba(9, 9, 11, 0.95) 25%, #09090b 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      z-index: 30;
+    }
+
+    .input-box-container {
+      width: 100%;
+      max-width: 860px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      padding: 0.75rem 1.15rem;
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+      box-shadow: 0 4px 28px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s ease;
+    }
+
+    .input-box-container:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 4px 30px var(--primary-glow);
+      background: #1f1f26;
+    }
+
+    .btn-attach {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-attach:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .chat-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      max-height: 200px;
+      min-height: 26px;
+      padding: 0.2rem 0;
+    }
+
+    .btn-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #38bdf8;
+      color: #09090b;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover {
+      background: #7dd3fc;
+      transform: scale(1.08);
+    }
+
+    .btn-send:disabled {
+      background: #27272a;
+      color: #52525b;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .input-footer-note {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+    }
+
+    /* Fullscreen Modal Viewport for Diagram */
+    .modal-viewport {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      z-index: 2000;
+      padding: 2rem;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-viewport.open { display: flex; }
+
+    .modal-viewport-box {
+      width: 90vw;
+      height: 85vh;
+      background: #09090c;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .modal-viewport-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-viewport-canvas {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 95px;
+      right: 28px;
+      background: #18181b;
+      border: 1px solid var(--primary);
+      color: #fff;
+      padding: 0.75rem 1.35rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.22s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       Sidebar
+       ========================================================================== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <button class="btn-new-chat" onclick="startNewChat()">
+        <span>✨</span> New Architecture
+      </button>
+    </div>
+
+    <div class="sidebar-section-title">Verified Sample Library</div>
+    <div class="sidebar-list" id="samplesList">
+      <!-- Loaded dynamically via JS -->
+    </div>
+
+    <div class="sidebar-section-title">Design History</div>
+    <div class="sidebar-list" id="historyList">
+      <!-- Session history loaded from localStorage -->
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar">🏛️</div>
+      <div>
+        <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">ArchSynth AI</div>
+        <div style="font-size: 0.72rem; color: var(--text-dim);">5 Deterministic Agents Active</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================================================
+       Main Chat Experience
+       ========================================================================== -->
+  <main class="chat-wrapper" id="mainDropZone">
+    <!-- Top Nav Bar -->
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <span>🏛️ Multi-Agent PRD-to-Architecture Studio</span>
+        <span class="badge-status">Agentic v2.0</span>
+      </div>
+      <div class="chat-actions">
+        <button class="btn-ghost" onclick="startNewChat()">Clear Conversation</button>
+      </div>
+    </div>
+
+    <!-- Messages Feed -->
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-container" id="chatContainer">
+        <!-- Hero screen when empty -->
+        <div class="hero-welcome" id="heroWelcome">
+          <div class="hero-logo">🏛️</div>
+          <div class="hero-title">What system are we designing today?</div>
+          <div class="hero-sub">
+            Give me any product brief, user stories, document, or ideas. 5 specialized agents will discover entities, synthesize scalable topologies, and compile verified specifications, diagrams, and Docker stacks.
+          </div>
+
+          <!-- Quick Suggestion Cards -->
+          <div class="hero-grid">
+            <div class="hero-card" onclick="sendQuickPrompt('uber')">
+              <div class="hero-card-title">🚕 Ride-Sharing (Uber/Lyft)</div>
+              <div class="hero-card-desc">Riders, drivers, trips, GPS tracking, Stripe payments, 35k RPS, and PCI-DSS compliance.</div>
+            </div>
+            <div class="hero-card" onclick="sendQuickPrompt('chat')">
+              <div class="hero-card-title">💬 Realtime Chat (Slack)</div>
+              <div class="hero-card-desc">Workspaces, channels, live message streaming, websockets, 50k RPS, and SOC2 audit.</div>
+            </div>
+            <div class="hero-card" onclick="sendQuickPrompt('healthcare')">
+              <div class="hero-card-title">🏥 Healthcare EHR Platform</div>
+              <div class="hero-card-desc">Patients, doctors, appointments, medical records, prescriptions, and HIPAA governance.</div>
+            </div>
+            <div class="hero-card" onclick="sendQuickPrompt('ecommerce')">
+              <div class="hero-card-title">🛍️ Flash Sale E-Commerce</div>
+              <div class="hero-card-desc">High-velocity inventory reservation, shopping carts, ScyllaDB, and 28k RPS.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Floating Input Dock -->
+    <div class="input-dock">
+      <div class="input-box-container">
+        <!-- Hidden File Input -->
+        <input type="file" id="filePicker" style="display: none;" accept=".md,.txt,.json,.rst,.yaml,.yml" onchange="handleFilePicked(event)">
+        <button class="btn-attach" onclick="document.getElementById('filePicker').click()" title="Attach document (.md, .txt, .json)">
+          📎
+        </button>
+
+        <textarea
+          id="chatTextarea"
+          class="chat-textarea"
+          rows="1"
+          placeholder="Message Multi-Agent Architect... (paste any requirements, document, or ideas)"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResizeTextarea(this)"></textarea>
+
+        <button id="sendBtn" class="btn-send" onclick="handleSend()" title="Synthesize Architecture">
+          ↑
+        </button>
+      </div>
+      <div class="input-footer-note">
+        Multi-Agent PRD-to-Architecture Studio • 5 Deterministic Agents • Instant Capacity Sizing
+      </div>
+    </div>
+  </main>
+
+  <!-- Fullscreen Modal Viewport for Diagram -->
+  <div class="modal-viewport" id="modalViewport">
+    <div class="modal-viewport-box">
+      <div class="modal-viewport-header">
+        <h3 id="modalTitle" style="color: #fff; font-size: 1.1rem;">Architecture Diagram Fullscreen</h3>
+        <button class="btn-ghost" onclick="closeModal()">✕ Close</button>
+      </div>
+      <div class="modal-viewport-canvas" id="modalCanvas"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Action completed</div>
+
+  <script>
+    // Initialize Mermaid
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0b0b0e',
+        primaryColor: '#18181f',
+        primaryTextColor: '#f4f4f5',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#38bdf8',
+        secondaryColor: '#121216',
+        tertiaryColor: '#18181f'
+      }
+    });
+
+    const QUICK_PROMPTS = {
+      "uber": `# Ride-Sharing & Fleet Dispatch Platform\n\nOn-demand transportation system connecting riders with nearby drivers.\n\nKey Capabilities:\n- Riders can request rides, set pickup locations, and view fare estimates.\n- Drivers accept ride assignments, manage vehicle profiles, and navigate trips.\n- GPS location telemetry updates are streamed every 2 seconds.\n- Stripe processes credit card transactions and driver payouts after ride completion.\n- Riders and drivers submit star ratings and reviews.\n\nNon-Functional Requirements:\n- Scale: 35,000 requests per second at peak rush hour\n- Latency: sub-30ms P99 latency\n- Availability: 99.99% high availability uptime\n- Compliance: PCI-DSS for cardholder payment security, PII, and GDPR\n- Realtime features: Continuous WebSocket streaming for live vehicle tracking`,
+
+      "chat": `# Enterprise Realtime Collaboration & Chat Platform\n\nSlack-like team communication platform with channels, direct messaging, and presence indicators.\n\nCore Features:\n- Users organize into Workspaces and join public or private Channels.\n- Members post Messages with threaded replies and emoji reactions.\n- Direct messaging with end-to-end encryption.\n- File attachments and documents shared across teams.\n\nOperating Requirements:\n- Scale: 50,000 req/s\n- Latency: < 20 ms for message delivery\n- Availability: 99.999% five-nines uptime\n- Compliance: SOC2 for corporate audit logs, ISO27001, GDPR\n- Realtime features: Bidirectional WebSocket connections for typing status and instant notifications`,
+
+      "healthcare": `# Healthcare Telemedicine & EHR Platform\n\nSecure telehealth consultation platform with electronic health records (EHR), prescription management, and appointment scheduling.\n\n## Functional Entities\n- Entity: Patient (mrn, full_name, date_of_birth, emergency_contact)\n- Entity: Doctor (license_number, specialty, department)\n- Entity: Appointment (scheduled_time, status, video_room_url) -> Patient, Doctor\n- Entity: MedicalRecord (diagnosis_codes, clinical_notes, encrypted_data) -> Patient, Doctor\n- Entity: Prescription (medication_code, dosage, refills_remaining) -> MedicalRecord, Patient\n\n## Non-Functional Requirements\n- Throughput: 1800 req/s\n- Latency: 90 ms\n- Availability: 99.95%\n- Compliance: HIPAA, PII, SOC2\n- Features: Realtime patient vital signs streaming via websocket`,
+
+      "ecommerce": `# E-Commerce Flash Sale & Inventory Platform\n\nHigh-velocity e-commerce flash sale platform managing inventory locking, shopping carts, and immediate payment processing.\n\n## Functional Entities\n- Entity: Customer (email, tier, phone)\n- Entity: Product (sku, title, base_price, stock_quantity)\n- Entity: InventoryReservation (reserved_until, lock_token) -> Product, Customer\n- Entity: Cart (session_id, expires_at) -> Customer\n- Entity: OrderItem (quantity, unit_price) -> Cart, Product\n- Entity: Payment (amount, currency, status, gateway_txn_id) -> Cart, Customer\n\n## Non-Functional Requirements\n- Throughput: 28000 req/s\n- Latency: 15 ms\n- Availability: 99.999%\n- Compliance: PCI-DSS, PII, SOC2\n- Features: Realtime stock decrement notifications and countdown stream via websocket`
+    };
+
+    let stateCache = {};
+    const chatContainer = document.getElementById('chatContainer');
+    const heroWelcome = document.getElementById('heroWelcome');
+    const chatTextarea = document.getElementById('chatTextarea');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    }
+
+    function handleFilePicked(e) {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          chatTextarea.value = ev.target.result;
+          autoResizeTextarea(chatTextarea);
+          showToast(`Loaded ${file.name}`);
+          handleSend();
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function sendQuickPrompt(key) {
+      if (QUICK_PROMPTS[key]) {
+        chatTextarea.value = QUICK_PROMPTS[key];
+        autoResizeTextarea(chatTextarea);
+        handleSend();
+      }
+    }
+
+    function startNewChat() {
+      chatContainer.innerHTML = '';
+      chatContainer.appendChild(heroWelcome);
+      heroWelcome.style.display = 'flex';
+      chatTextarea.value = '';
+      autoResizeTextarea(chatTextarea);
+      chatTextarea.focus();
+    }
+
+    // Core Synthesis Call
+    async function handleSend() {
+      const text = chatTextarea.value.trim();
+      if (!text) return;
+
+      heroWelcome.style.display = 'none';
+
+      // 1. Render User Message
+      appendUserMessage(text);
+      chatTextarea.value = '';
+      autoResizeTextarea(chatTextarea);
+      sendBtn.disabled = true;
+      sendBtn.textContent = '⏳';
+
+      // 2. Render Animated Multi-Agent Thinking Indicator
+      const loadingId = 'loading-' + Date.now();
+      appendThinkingIndicator(loadingId);
+      scrollToBottom();
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prd: text })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Synthesis request failed.");
+        }
+
+        // Remove loading indicator
+        const loader = document.getElementById(loadingId);
+        if (loader) loader.remove();
+
+        // 3. Render Assistant Rich Architecture Card
+        const msgId = 'arch-msg-' + Date.now();
+        stateCache[msgId] = data;
+        appendAssistantMessage(msgId, data);
+
+        addToHistorySidebar(data.prd.project_name);
+        scrollToBottom();
+      } catch (err) {
+        const loader = document.getElementById(loadingId);
+        if (loader) loader.remove();
+        appendErrorMessage(err.message);
+        scrollToBottom();
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '↑';
+      }
+    }
+
+    function scrollToBottom() {
+      const scroller = document.getElementById('chatMessages');
+      setTimeout(() => { scroller.scrollTop = scroller.scrollHeight; }, 60);
+    }
+
+    function appendUserMessage(text) {
+      const row = document.createElement('div');
+      row.className = 'message-row user-row';
+      row.innerHTML = `
+        <div class="message-avatar">👤</div>
+        <div class="message-content">
+          <div class="user-bubble">${escapeHtml(text)}</div>
+        </div>
+      `;
+      chatContainer.appendChild(row);
+    }
+
+    function appendThinkingIndicator(id) {
+      const row = document.createElement('div');
+      row.className = 'message-row assistant-row';
+      row.id = id;
+      row.innerHTML = `
+        <div class="message-avatar">🏛️</div>
+        <div class="message-content">
+          <div style="background: #141418; border: 1px solid var(--border-color); border-radius: 14px; padding: 1.15rem 1.4rem; font-size: 0.9rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.85rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="width: 16px; height: 16px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <span>Synthesizing with 5 Specialized Agents (Analyzer • Architect • Database • Security • Critic)...</span>
+          </div>
+        </div>
+      `;
+      chatContainer.appendChild(row);
+    }
+
+    function appendErrorMessage(errText) {
+      const row = document.createElement('div');
+      row.className = 'message-row assistant-row';
+      row.innerHTML = `
+        <div class="message-avatar">⚠️</div>
+        <div class="message-content">
+          <div style="background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 14px; padding: 1.15rem; color: #fca5a5; font-size: 0.9rem;">
+            <strong>Synthesis Error:</strong> ${escapeHtml(errText)}
+          </div>
+        </div>
+      `;
+      chatContainer.appendChild(row);
+    }
+
+    function appendAssistantMessage(msgId, data) {
+      const prd = data.prd;
+      const arch = data.arch;
+      const cap = data.capacity || {};
+      const logs = data.agent_logs || [];
+
+      const row = document.createElement('div');
+      row.className = 'message-row assistant-row';
+      row.innerHTML = `
+        <div class="message-avatar">🏛️</div>
+        <div class="message-content">
+          <div class="assistant-card">
+            <!-- Card Header -->
+            <div class="assistant-card-header">
+              <div class="project-header-title">
+                <span>🏛️</span>
+                <span>${escapeHtml(prd.project_name)}</span>
+              </div>
+              <span class="badge-status">5-Agent Verified</span>
+            </div>
+
+            <!-- Agent Reasoning Trace Accordion -->
+            <div class="agent-reasoning-accordion">
+              <div class="accordion-trigger" onclick="toggleAccordion('${msgId}-accordion')">
+                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="color: var(--success); font-weight: 700;">✓</span>
+                  <span>Thought for 1.2s • 5 Specialized Agents Collaborated</span>
+                </span>
+                <span id="${msgId}-accordion-arrow" style="font-size: 0.8rem;">▼</span>
+              </div>
+              <div class="accordion-body" id="${msgId}-accordion">
+                ${logs.map(log => `
+                  <div class="trace-item">
+                    <span class="trace-icon">${log.icon}</span>
+                    <div class="trace-text">
+                      <strong>${log.title}:</strong> ${escapeHtml(log.details)}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- NFR Metric Strip -->
+            <div class="nfr-strip">
+              <div class="pill highlight"><span class="k">Pattern:</span> <span class="v">${arch.topology}</span></div>
+              <div class="pill"><span class="k">Peak Throughput:</span> <span class="v" id="${msgId}-stat-rps">${prd.expected_rps.toLocaleString()} req/s</span></div>
+              <div class="pill"><span class="k">Latency P99:</span> <span class="v">&lt; ${prd.max_latency_ms} ms</span></div>
+              <div class="pill"><span class="k">Availability SLA:</span> <span class="v">${prd.availability_sla}</span></div>
+              <div class="pill"><span class="k">Compliance:</span> <span class="v">${prd.compliance.join(', ') || 'Standard Baseline'}</span></div>
+              ${arch.revision_count > 0 ? `<div class="pill warn"><span class="k">Critic Auto-Fixes:</span> <span class="v">${arch.revision_count}</span></div>` : '<div class="pill green"><span class="k">Critic:</span> <span class="v">0 Conflicts</span></div>'}
+            </div>
+
+            <!-- Interactive Live Tuning Simulator Bar -->
+            <div class="simulator-bar">
+              <div class="sim-label">
+                <span>⚡</span>
+                <span>Interactive Traffic Simulator:</span>
+              </div>
+              <div class="sim-controls">
+                <button class="sim-btn active" onclick="simulateTraffic('${msgId}', 1.0, event)">1x Base (${prd.expected_rps.toLocaleString()} RPS)</button>
+                <button class="sim-btn" onclick="simulateTraffic('${msgId}', 2.0, event)">2x Spike (${(prd.expected_rps * 2).toLocaleString()} RPS)</button>
+                <button class="sim-btn" onclick="simulateTraffic('${msgId}', 5.0, event)">5x Extreme (${(prd.expected_rps * 5).toLocaleString()} RPS)</button>
+              </div>
+            </div>
+
+            <!-- Tab Navigation Inside Message Card -->
+            <div class="card-tabs">
+              <button class="tab-item active" onclick="switchCardTab('${msgId}', 'topo', event)">🗺️ Topology Diagram</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'er', event)">📊 ER Model</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'capacity', event)">⚡ Capacity &amp; Cost</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'critic', event)">⚖️ Critic Audit (${arch.findings ? arch.findings.length : 0})</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'sql', event)">💾 SQL Schema</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'docker', event)">🐳 Docker Compose</button>
+              <button class="tab-item" onclick="switchCardTab('${msgId}', 'spec', event)">📝 Design Spec</button>
+            </div>
+
+            <!-- Card Body Area -->
+            <div class="card-body">
+              <!-- Pane 1: Topology Diagram -->
+              <div id="${msgId}-pane-topo" class="tab-pane-content">
+                <div class="diagram-pane">
+                  <div class="diagram-controls">
+                    <button onclick="zoomMsgDiagram('${msgId}-topo-svg', 1.2)" title="Zoom In">+</button>
+                    <button onclick="zoomMsgDiagram('${msgId}-topo-svg', 0.8)" title="Zoom Out">-</button>
+                    <button onclick="resetMsgZoom('${msgId}-topo-svg')" title="Reset Zoom">⟲</button>
+                    <button onclick="openModal('${msgId}', 'Topology Architecture Diagram')" title="Fullscreen View">⛶</button>
+                  </div>
+                  <div id="${msgId}-topo-svg" style="width: 100%; text-align: center; transform-origin: center top; transition: transform 0.15s ease;">
+                    Rendering topology...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pane 2: ER Diagram -->
+              <div id="${msgId}-pane-er" class="tab-pane-content" style="display: none;">
+                <div class="diagram-pane">
+                  <div class="diagram-controls">
+                    <button onclick="openModal('${msgId}-er', 'Entity-Relationship Data Model')" title="Fullscreen View">⛶</button>
+                  </div>
+                  <div id="${msgId}-er-svg" style="width: 100%; text-align: center;">
+                    Rendering ER model...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pane 3: Capacity & Cost Sizing -->
+              <div id="${msgId}-pane-capacity" class="tab-pane-content" style="display: none;">
+                <div class="capacity-grid">
+                  <div class="cap-card">
+                    <span class="cap-label">Monthly Cloud Estimate</span>
+                    <span class="cap-val" id="${msgId}-cap-cost" style="color: var(--primary);">${cap.estimated_cost_range || '$580 - $850 / mo'}</span>
+                    <span class="cap-sub">Compute + Multi-AZ DB + Caching + Network</span>
+                  </div>
+                  <div class="cap-card">
+                    <span class="cap-label">Compute Pod Footprint</span>
+                    <span class="cap-val" id="${msgId}-cap-pods">${cap.recommended_pods || 6} Pods</span>
+                    <span class="cap-sub" id="${msgId}-cap-spec">${cap.pod_spec || 'EKS / GKE Pods (2 vCPU, 4GB RAM)'}</span>
+                  </div>
+                  <div class="cap-card">
+                    <span class="cap-label">Network Ingress &amp; Storage</span>
+                    <span class="cap-val" id="${msgId}-cap-bw">${cap.network_mbps || 25.0} Mbps</span>
+                    <span class="cap-sub" id="${msgId}-cap-storage">Growth: ${cap.daily_storage_gb || 2.4} GB/day (${cap.monthly_storage_gb || 72} GB/mo)</span>
+                  </div>
+                </div>
+                <div class="code-box" style="margin-top: 0.5rem; font-size: 0.78rem; line-height: 1.6;">
+                  <strong>Recommended Infrastructure Tier:</strong><br>
+                  • Primary Relational Engine: <code style="color: #38bdf8;">${cap.primary_db_tier || 'PostgreSQL Multi-AZ'}</code><br>
+                  • In-Memory Cache Tier: <code style="color: #34d399;">${cap.cache_tier || 'Redis Cluster'}</code><br>
+                  • Peak Read/Write Split: <code style="color: #fbbf24;">${cap.read_qps || 800} Read QPS (${cap.write_qps || 200} Write QPS)</code><br>
+                  • Availability SLA Resiliency: Multi-AZ automated failover with synchronous replication
+                </div>
+              </div>
+
+              <!-- Pane 4: Critic Audit -->
+              <div id="${msgId}-pane-critic" class="tab-pane-content" style="display: none;">
+                <div style="font-size: 0.88rem; color: #fff; margin-bottom: 0.6rem; font-weight: 700;">Cross-Domain Peer-Review Findings</div>
+                <table class="critic-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 105px;">Severity</th>
+                      <th style="width: 110px;">Domain</th>
+                      <th>Finding / Conflict</th>
+                      <th>Resolution Action Taken</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${renderCriticRows(arch)}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pane 5: SQL DDL -->
+              <div id="${msgId}-pane-sql" class="tab-pane-content" style="display: none;">
+                <div class="code-box">${escapeHtml(data.sql)}</div>
+              </div>
+
+              <!-- Pane 6: Docker Compose -->
+              <div id="${msgId}-pane-docker" class="tab-pane-content" style="display: none;">
+                <div class="code-box">${escapeHtml(data.docker_compose)}</div>
+              </div>
+
+              <!-- Pane 7: System Spec Markdown -->
+              <div id="${msgId}-pane-spec" class="tab-pane-content" style="display: none;">
+                <div class="code-box" style="white-space: pre-wrap; font-family: var(--font-sans); line-height: 1.6;">${window.marked ? marked.parse(data.spec) : escapeHtml(data.spec)}</div>
+              </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="message-actions-bar">
+              <button class="btn-ghost" onclick="copyCardItem('${msgId}', 'spec', 'Specification Markdown', event)">📋 Copy Spec</button>
+              <button class="btn-ghost" onclick="copyCardItem('${msgId}', 'sql', 'PostgreSQL DDL', event)">💾 Copy SQL</button>
+              <button class="btn-ghost" onclick="copyCardItem('${msgId}', 'docker', 'Docker Compose', event)">🐳 Copy Compose</button>
+              <button class="btn-ghost" onclick="downloadArtifactFile('${msgId}', 'spec', '${prd.project_name}_Spec.md')">⬇️ Download Spec</button>
+            </div>
+          </div>
+        </div>
+      `;
+      chatContainer.appendChild(row);
+
+      // Render Mermaid Diagrams
+      renderMermaidDiagram(`${msgId}-topo-svg`, data.mermaid);
+      renderMermaidDiagram(`${msgId}-er-svg`, data.er_diagram);
+    }
+
+    function toggleAccordion(id) {
+      const body = document.getElementById(id);
+      const arrow = document.getElementById(id + '-arrow');
+      if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        if (arrow) arrow.textContent = '▼';
+      } else {
+        body.classList.add('open');
+        if (arrow) arrow.textContent = '▲';
+      }
+    }
+
+    function simulateTraffic(msgId, multiplier, ev) {
+      const data = stateCache[msgId];
+      if (!data) return;
+
+      const parent = ev.currentTarget.parentElement;
+      parent.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+
+      const baseRps = data.prd.expected_rps;
+      const simRps = Math.round(baseRps * multiplier);
+      const cap = data.capacity || {};
+
+      document.getElementById(`${msgId}-stat-rps`).textContent = `${simRps.toLocaleString()} req/s`;
+
+      const simPods = Math.max(2, Math.round((cap.recommended_pods || 4) * multiplier));
+      const simCostMin = Math.round((cap.cost_min || 400) * (1 + (multiplier - 1) * 0.7));
+      const simCostMax = Math.round((cap.cost_max || 600) * (1 + (multiplier - 1) * 0.7));
+      const simBw = (cap.network_mbps * multiplier).toFixed(1);
+
+      document.getElementById(`${msgId}-cap-cost`).textContent = `$${simCostMin.toLocaleString()} - $${simCostMax.toLocaleString()} / mo`;
+      document.getElementById(`${msgId}-cap-pods`).textContent = `${simPods} Pods`;
+      document.getElementById(`${msgId}-cap-spec`).textContent = `${simPods}x Application Pods (2 vCPU, 4GB RAM)`;
+      document.getElementById(`${msgId}-cap-bw`).textContent = `${simBw} Mbps`;
+
+      showToast(`Simulated ${multiplier}x traffic spike (${simRps.toLocaleString()} RPS)`);
+    }
+
+    function renderCriticRows(arch) {
+      if (arch.findings && arch.findings.length > 0) {
+        return arch.findings.map(f => `
+          <tr>
+            <td><span class="badge-sev ${f.severity}">${f.severity}</span></td>
+            <td style="color: #38bdf8; font-weight: 700;">${f.category}</td>
+            <td>${escapeHtml(f.message)}</td>
+            <td style="color: #34d399; font-weight: 500;">${escapeHtml(f.action_taken || 'Verified')}</td>
+          </tr>
+        `).join('');
+      } else {
+        return `<tr><td colspan="4" style="text-align: center; color: #34d399; padding: 1.5rem;">✅ Zero architectural conflicts detected. All constraints satisfied.</td></tr>`;
+      }
+    }
+
+    async function renderMermaidDiagram(elemId, code) {
+      const container = document.getElementById(elemId);
+      if (!container) return;
+      try {
+        const id = 'svg-' + Math.random().toString(36).substring(2, 9);
+        const { svg } = await mermaid.render(id, code);
+        container.innerHTML = svg;
+      } catch (err) {
+        container.innerHTML = `<pre style="color: #f87171; text-align: left; font-size: 0.78rem;">Diagram Preview:\n\n${escapeHtml(code)}</pre>`;
+      }
+    }
+
+    function switchCardTab(msgId, tabName, ev) {
+      const card = ev.currentTarget.closest('.assistant-card');
+      card.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      ev.currentTarget.classList.add('active');
+
+      ['topo', 'er', 'capacity', 'critic', 'sql', 'docker', 'spec'].forEach(p => {
+        const pane = document.getElementById(`${msgId}-pane-${p}`);
+        if (pane) pane.style.display = (p === tabName) ? 'block' : 'none';
+      });
+    }
+
+    let msgScales = {};
+    function zoomMsgDiagram(elemId, factor) {
+      msgScales[elemId] = (msgScales[elemId] || 1.0) * factor;
+      msgScales[elemId] = Math.max(0.4, Math.min(2.5, msgScales[elemId]));
+      const el = document.getElementById(elemId);
+      if (el) el.style.transform = `scale(${msgScales[elemId]})`;
+    }
+
+    function resetMsgZoom(elemId) {
+      msgScales[elemId] = 1.0;
+      const el = document.getElementById(elemId);
+      if (el) el.style.transform = 'scale(1)';
+    }
+
+    function openModal(msgId, title) {
+      const modal = document.getElementById('modalViewport');
+      const canvas = document.getElementById('modalCanvas');
+      document.getElementById('modalTitle').textContent = title;
+
+      const sourceElem = document.getElementById(`${msgId}-svg`) || document.getElementById(`${msgId}-topo-svg`);
+      if (sourceElem) {
+        canvas.innerHTML = sourceElem.innerHTML;
+        modal.classList.add('open');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modalViewport').classList.remove('open');
+    }
+
+    function copyCardItem(msgId, key, label, ev) {
+      const data = stateCache[msgId];
+      if (!data) return;
+      let text = data[key];
+      if (key === 'docker') text = data.docker_compose;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = ev.currentTarget;
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.style.borderColor = 'var(--success)';
+        btn.style.color = 'var(--success)';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.borderColor = '';
+          btn.style.color = '';
+        }, 1800);
+        showToast(`${label} copied to clipboard! ✨`);
+      });
+    }
+
+    function downloadArtifactFile(msgId, key, filename) {
+      const data = stateCache[msgId];
+      if (!data) return;
+      let text = data[key];
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${filename}`);
+    }
+
+    function addToHistorySidebar(title) {
+      const list = document.getElementById('historyList');
+      const item = document.createElement('div');
+      item.className = 'sidebar-item';
+      item.textContent = `🏛️ ${title}`;
+      list.prepend(item);
+    }
+
+    async function loadSamplesIntoSidebar() {
+      try {
+        const res = await fetch('/api/samples');
+        const data = await res.json();
+        const list = document.getElementById('samplesList');
+        list.innerHTML = '';
+
+        data.samples.forEach(s => {
+          const item = document.createElement('div');
+          item.className = 'sidebar-item';
+          item.textContent = `📄 ${s.title}`;
+          item.onclick = async () => {
+            const sampleRes = await fetch(`/api/sample?id=${s.id}`);
+            const sampleData = await sampleRes.json();
+            chatTextarea.value = sampleData.content;
+            autoResizeTextarea(chatTextarea);
+            handleSend();
+          };
+          list.appendChild(item);
+        });
+      } catch (err) {
+        console.warn("Could not load samples into sidebar", err);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Keyframe spinner animation
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+    document.head.appendChild(styleSheet);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSamplesIntoSidebar();
+      chatTextarea.focus();
+    });
+  </script>
+</body>
+</html>

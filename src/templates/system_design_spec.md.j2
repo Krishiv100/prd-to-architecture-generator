@@ -1,0 +1,121 @@
+# System Architecture Specification: {{ prd.project_name }}
+
+> **Document Status:** Architectural Baseline (Multi-Agent Verified)  
+> **Target Workload:** Distributed High-Throughput Production Service  
+> **Generation Engine:** Multi-Agent PRD-to-Architecture Generator
+
+---
+
+## 1. Executive Summary & Non-Functional Requirements (NFRs)
+
+{{ prd.description }}
+
+### Target Operating Thresholds
+| Metric / Constraint | Specified Target | Architecture Tier |
+| :--- | :--- | :--- |
+| **Architectural Topology** | `{{ arch.topology }}` | {% if "Microservices" in arch.topology %}Distributed Service Mesh{% else %}Monolithic Cohesive Core{% endif %} |
+| **Peak Throughput** | `{{ "{:,}".format(prd.expected_rps) }} req/s` | {% if prd.expected_rps >= 10000 %}Extreme Scale (Asynchronous Ingestion){% elif prd.expected_rps >= 3000 %}High Scale (Distributed Cluster){% else %}Standard Scale{% endif %} |
+| **P99 Latency Budget** | `< {{ prd.max_latency_ms }} ms` | {% if prd.max_latency_ms <= 50 %}Ultra-Low (In-Memory Sub-millisecond){% else %}Standard Tier{% endif %} |
+| **Availability SLA** | `{{ prd.availability_sla }}` | {% if "99.99" in prd.availability_sla %}Four-Nines (Multi-AZ Active-Active Failover){% else %}Three-Nines Standard{% endif %} |
+| **Compliance Scope** | `{{ prd.compliance | join(', ') or 'Standard Baseline' }}` | Regulated Data Isolation & Cryptographic Governance |
+| **Realtime / Streaming** | `{{ "Enabled (WebSockets / Event Stream)" if prd.realtime_features else "Standard HTTP/gRPC" }}` | {% if prd.realtime_features %}Bidirectional Full-Duplex Gateway{% else %}Request-Response Protocol{% endif %} |
+
+---
+
+## 2. Multi-Agent Critic & Peer-Review Audit Log
+
+The **Collaboration Critic Agent** executed cross-domain automated constraint verification against latency budgets, compliance isolation standards, throughput bottlenecks, and single points of failure (SPOFs).
+
+* **Total Revisions Performed:** `{{ arch.revision_count }}`
+
+{% if arch.findings %}
+### Detailed Constraint Verification Findings
+| Severity | Domain | Architectural Finding | Resolution Action Taken |
+| :--- | :--- | :--- | :--- |
+{% for f in arch.findings %}
+| **`{{ f.severity }}`** | {{ f.category }} | {{ f.message }} | {{ f.action_taken }} |
+{% endfor %}
+{% endif %}
+
+### Critic Actions & Review Warnings
+{% if arch.warnings %}
+{% for warning in arch.warnings %}
+* ⚠️ {{ warning }}
+{% endfor %}
+{% else %}
+* ✅ All architectural constraints verified with zero conflicts.
+{% endif %}
+
+---
+
+## 3. Service Decomposition & Compute Topology
+
+The system deploys the following compute nodes and boundary-isolated services:
+
+| Component ID | Role & Description | Communication Protocol |
+| :--- | :--- | :--- |
+{% for node in arch.compute_nodes %}
+| `{{ node.split('[')[0] }}` | {{ node.split('[')[1].replace(']', '') }} | REST / gRPC + Kafka PubSub |
+{% endfor %}
+
+### Ingress & Network Infrastructure
+{% for comp in arch.infra_components %}
+* 🌐 **{{ comp }}**
+{% endfor %}
+
+---
+
+## 4. Data Persistence & Caching Matrix
+
+Polyglot storage tiers configured to meet workload read/write profiles:
+
+| Storage Role | Engine & Topology | Purpose & Access Pattern |
+| :--- | :--- | :--- |
+{% for role, engine in arch.data_stores.items() %}
+| **{{ role }}** | `{{ engine }}` | {% if role == 'PrimaryDB' %}ACID-compliant transactional store with relational integrity{% elif role == 'CacheLayer' %}Sub-millisecond read cache, session store, distributed locks{% elif role == 'HighWriteStore' %}Log-structured wide-column store for continuous append ingestion{% else %}Specialized persistence store{% endif %} |
+{% endfor %}
+
+---
+
+## 5. Security, Zero Trust & Compliance Framework
+
+The Security Infrastructure Agent mapped compliance mandates to defense-in-depth controls:
+
+{% for control in arch.security_controls %}
+* 🛡️ **{{ control }}**
+{% endfor %}
+
+---
+
+## 6. System Architecture Topology Diagram
+
+```mermaid
+{{ mermaid_code }}
+```
+
+---
+
+## 7. Data Model & Relational Schema (PostgreSQL DDL)
+
+### Entity-Relationship Diagram
+```mermaid
+{{ er_diagram }}
+```
+
+### Generated Schema DDL
+```sql
+{{ sql_ddl }}
+```
+
+---
+
+## 8. Reliability, Scaling & Disaster Recovery Strategy
+
+1. **High Availability & Redundancy:**
+   - Active-active redundant ingress load balancing across multiple availability zones.
+   - Database read-replicas offload read traffic with synchronous primary failover.
+2. **Backpressure & Decoupling:**
+   - Kafka event buffers decouple upstream traffic spikes from downstream persistence workers.
+3. **Resilience & Fault Tolerance:**
+   - Circuit breakers (Hystrix / Resilience4j pattern) prevent cascading service degradation.
+   - Exponential backoff with jitter on transient failures.

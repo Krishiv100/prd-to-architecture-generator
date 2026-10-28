@@ -1,0 +1,22 @@
+microservices_thresholds:
+  min_rps: 5000
+  min_entities: 6
+
+caching_thresholds:
+  max_latency_ms: 100
+  min_rps: 3000
+
+high_write_thresholds:
+  min_rps: 10000
+
+event_driven_thresholds:
+  min_rps: 5000
+
+multi_az_thresholds:
+  availability:
+    - "99.99%"
+    - "99.999%"
+  min_rps: 2000
+
+cdn_thresholds:
+  min_rps: 5000
