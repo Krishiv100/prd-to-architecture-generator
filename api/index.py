@@ -11,3 +11,6 @@ from src.gui.server import ArchitectureGUIHandler
 # Vercel Serverless Function entry point
 class handler(ArchitectureGUIHandler):
     pass
+
+app = handler
+application = handler

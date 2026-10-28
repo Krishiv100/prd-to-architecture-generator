@@ -11,6 +11,15 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from src.orchestrator.pipeline import ArchitecturePipeline
 
+# Vercel Serverless Function entry point exports
+try:
+    from src.gui.server import ArchitectureGUIHandler
+    handler = ArchitectureGUIHandler
+    app = ArchitectureGUIHandler
+    application = ArchitectureGUIHandler
+except Exception:
+    pass
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Multi-Agent PRD-to-Architecture Generator",
