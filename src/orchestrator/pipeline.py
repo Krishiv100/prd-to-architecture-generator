@@ -22,6 +22,31 @@ class ArchitecturePipeline:
         self.critic = CollaborationCriticAgent()
         self.md_compiler = MarkdownCompiler()
 
+    def _save_artifacts(self, output_dir: str, mermaid_code: str, er_diagram: str, sql_ddl: str, docker_compose: str, final_spec: str) -> None:
+        """Safely saves artifacts, falling back to tempdir in serverless read-only environments (e.g. Vercel)."""
+        import tempfile
+        try:
+            out_path = Path(output_dir)
+            (out_path / "diagrams").mkdir(parents=True, exist_ok=True)
+            (out_path / "schemas").mkdir(parents=True, exist_ok=True)
+            (out_path / "specs").mkdir(parents=True, exist_ok=True)
+            (out_path / "infra").mkdir(parents=True, exist_ok=True)
+        except OSError:
+            out_path = Path(tempfile.gettempdir()) / "outputs"
+            (out_path / "diagrams").mkdir(parents=True, exist_ok=True)
+            (out_path / "schemas").mkdir(parents=True, exist_ok=True)
+            (out_path / "specs").mkdir(parents=True, exist_ok=True)
+            (out_path / "infra").mkdir(parents=True, exist_ok=True)
+
+        try:
+            (out_path / "diagrams" / "architecture.mmd").write_text(mermaid_code, encoding="utf-8")
+            (out_path / "diagrams" / "er_diagram.mmd").write_text(er_diagram, encoding="utf-8")
+            (out_path / "schemas" / "schema.sql").write_text(sql_ddl, encoding="utf-8")
+            (out_path / "infra" / "docker-compose.yml").write_text(docker_compose, encoding="utf-8")
+            (out_path / "specs" / "System_Design_Spec.md").write_text(final_spec, encoding="utf-8")
+        except OSError:
+            pass  # Read-only filesystem safeguard
+
     def run(self, prd_text: str, output_dir: str = "outputs") -> str:
         # Step 1: Requirement Analyzer Agent extracts structured state
         prd_state: PRDExtraction = self.analyzer.analyze(prd_text)
@@ -49,17 +74,7 @@ class ArchitecturePipeline:
         )
 
         # Step 5: Persist Artifacts to Disk
-        out_path = Path(output_dir)
-        (out_path / "diagrams").mkdir(parents=True, exist_ok=True)
-        (out_path / "schemas").mkdir(parents=True, exist_ok=True)
-        (out_path / "specs").mkdir(parents=True, exist_ok=True)
-        (out_path / "infra").mkdir(parents=True, exist_ok=True)
-
-        (out_path / "diagrams" / "architecture.mmd").write_text(mermaid_code, encoding="utf-8")
-        (out_path / "diagrams" / "er_diagram.mmd").write_text(er_diagram, encoding="utf-8")
-        (out_path / "schemas" / "schema.sql").write_text(sql_ddl, encoding="utf-8")
-        (out_path / "infra" / "docker-compose.yml").write_text(docker_compose, encoding="utf-8")
-        (out_path / "specs" / "System_Design_Spec.md").write_text(final_spec, encoding="utf-8")
+        self._save_artifacts(output_dir, mermaid_code, er_diagram, sql_ddl, docker_compose, final_spec)
 
         return final_spec
 
@@ -87,17 +102,7 @@ class ArchitecturePipeline:
             er_diagram=er_diagram
         )
 
-        out_path = Path(output_dir)
-        (out_path / "diagrams").mkdir(parents=True, exist_ok=True)
-        (out_path / "schemas").mkdir(parents=True, exist_ok=True)
-        (out_path / "specs").mkdir(parents=True, exist_ok=True)
-        (out_path / "infra").mkdir(parents=True, exist_ok=True)
-
-        (out_path / "diagrams" / "architecture.mmd").write_text(mermaid_code, encoding="utf-8")
-        (out_path / "diagrams" / "er_diagram.mmd").write_text(er_diagram, encoding="utf-8")
-        (out_path / "schemas" / "schema.sql").write_text(sql_ddl, encoding="utf-8")
-        (out_path / "infra" / "docker-compose.yml").write_text(docker_compose, encoding="utf-8")
-        (out_path / "specs" / "System_Design_Spec.md").write_text(final_spec, encoding="utf-8")
+        self._save_artifacts(output_dir, mermaid_code, er_diagram, sql_ddl, docker_compose, final_spec)
 
         # Multi-Agent Structured Reasoning Trace Log
         agent_logs = [
