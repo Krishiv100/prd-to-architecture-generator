@@ -295,7 +295,7 @@ class RequirementAnalyzerAgent:
         # 4. Numerical NFR Extraction
         # Throughput
         rps = 1000  # default baseline
-        
+
         # Check pattern: 30k rps / 30,000 req/s / 25k requests per second
         rps_match = re.search(
             r"([\d,]+(?:\.\d+)?)\s*(k|m|million|thousand)?\s*(?:req/s|rps|qps|requests?\s+per\s+second|concurrent\s+requests?)",
@@ -392,7 +392,7 @@ class RequirementAnalyzerAgent:
             compliance=compliance,
             realtime_features=realtime,
         )
-        
+
     def analyze(self, raw_prd: str) -> PRDExtraction:
         """Use Gemini when enabled; otherwise use rule-based extraction."""
 

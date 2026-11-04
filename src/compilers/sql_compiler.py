@@ -18,7 +18,7 @@ class SQLCompiler:
 
         # 1. Table Definitions
         for table_name, columns in arch.tables_ddl.items():
-            sql_table_name = identifier(table_name)
+            sql_table_name = DatabaseDesignerAgent._table_identifier(table_name)
             cols_joined = ",\n    ".join(columns)
 
             stmt = (

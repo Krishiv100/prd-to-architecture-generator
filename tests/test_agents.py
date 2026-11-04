@@ -6,6 +6,29 @@ from src.agents.security_agent import SecurityInfrastructureAgent
 from src.state.prd_schema import PRDExtraction, EntitySpec
 from src.state.arch_state import ArchitectureOutput
 
+def test_table_identifier_pluralization():
+    test_cases = {
+        "User": "users",
+        "Users": "users",
+        "Product": "products",
+        "Products": "products",
+        "Category": "categories",
+        "Categories": "categories",
+        "Person": "people",
+        "People": "people",
+        "Child": "children",
+        "Children": "children",
+        "Order": "orders",
+        "Orders": "orders",
+        "Analysis": "analyses",
+        "Analyses": "analyses",
+    }
+
+    for entity_name, expected in test_cases.items():
+        actual = DatabaseDesignerAgent._table_identifier(entity_name)
+        assert actual == expected, (
+            f"{entity_name}: expected {expected}, got {actual}"
+        )
 
 def test_architect_microservices_trigger():
     agent = SystemArchitectAgent()
@@ -65,7 +88,7 @@ def test_database_designer_topological_sort_and_engines():
 
     # Verify foreign key and index generation
     assert any("user_id" in col for col in arch.tables_ddl["Order"])
-    assert any("idx_order_user_id" in idx for idx in arch.indexes)
+    assert any("idx_orders_user_id" in idx for idx in arch.indexes)
 
 
 def test_database_designer_multiword_entity_foreign_key():
@@ -97,13 +120,13 @@ def test_database_designer_multiword_entity_foreign_key():
 
     # Verify the foreign key references the normalized table name
     assert any(
-        "REFERENCES delivery_partner(id)" in column
+        "REFERENCES delivery_partners(id)" in column
         for column in order_columns
     )
 
     # Verify the corresponding foreign-key index is generated
     assert any(
-        "idx_order_delivery_partner_id" in index
+        "idx_orders_delivery_partner_id" in index
         for index in arch.indexes
     )
 

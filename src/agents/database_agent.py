@@ -26,17 +26,53 @@ class DatabaseDesignerAgent(BaseAgent):
 
     @staticmethod
     def _sql_identifier(name: str) -> str:
-        """Convert an entity name into a safe SQL identifier."""
+        """Convert a name into a safe lowercase SQL identifier."""
         identifier = re.sub(r"[^a-zA-Z0-9_]+", "_", name.strip())
         identifier = re.sub(r"_+", "_", identifier).strip("_")
         return identifier.lower()
+
+    @staticmethod
+    def _table_identifier(name: str) -> str:
+        """Convert an entity name into a consistent plural table name."""
+        identifier = DatabaseDesignerAgent._sql_identifier(name)
+
+        irregular = {
+            "person": "people",
+            "child": "children",
+            "category": "categories",
+            "analysis": "analyses",
+        }
+
+        # Preserve already-plural names.
+        if identifier in irregular.values():
+            return identifier
+
+        if identifier in irregular:
+            return irregular[identifier]
+
+        if identifier.endswith("ies"):
+            return identifier
+
+        if identifier.endswith(("sses", "xes", "zes", "ches", "shes")):
+            return identifier
+
+        if identifier.endswith("s") and not identifier.endswith(("ss", "us", "is")):
+            return identifier
+
+        if identifier.endswith("y") and len(identifier) > 1:
+            if identifier[-2] not in "aeiou":
+                return identifier[:-1] + "ies"
+
+        if identifier.endswith(("s", "x", "z", "ch", "sh")):
+            return identifier + "es"
+
+        return identifier + "s"
 
     def _sort_entities_topologically(
         self,
         entities: List[EntitySpec]
     ) -> List[EntitySpec]:
         """Create parent tables before dependent child tables."""
-
         name_to_entity = {e.name: e for e in entities}
         visited: Set[str] = set()
         visiting: Set[str] = set()
@@ -48,7 +84,6 @@ class DatabaseDesignerAgent(BaseAgent):
 
             if name not in visited:
                 visiting.add(name)
-
                 entity = name_to_entity.get(name)
 
                 if entity:
@@ -132,11 +167,11 @@ class DatabaseDesignerAgent(BaseAgent):
 
         for entity in ordered_entities:
             cols = list(entity.fields)
-            table_name = self._sql_identifier(entity.name)
+            table_name = self._table_identifier(entity.name)
 
             for target in entity.relations:
-                target_table = self._sql_identifier(target)
-                fk_column = f"{target_table}_id"
+                target_table = self._table_identifier(target)
+                fk_column = f"{self._sql_identifier(target)}_id"
 
                 fk_definition = (
                     f"{fk_column} UUID NOT NULL "
@@ -151,10 +186,8 @@ class DatabaseDesignerAgent(BaseAgent):
                 ):
                     cols.append(fk_definition)
 
-                # Generate a foreign-key index.
-                index_name = (
-                    f"idx_{table_name}_{fk_column}"
-                )
+                # Generate a foreign-key lookup index.
+                index_name = f"idx_{table_name}_{fk_column}"
 
                 index_sql = (
                     f"CREATE INDEX IF NOT EXISTS {index_name} "
