@@ -1,9 +1,11 @@
 import pytest
+
 from src.agents.architect_agent import SystemArchitectAgent
 from src.agents.database_agent import DatabaseDesignerAgent
 from src.agents.security_agent import SecurityInfrastructureAgent
 from src.state.prd_schema import PRDExtraction, EntitySpec
 from src.state.arch_state import ArchitectureOutput
+
 
 def test_architect_microservices_trigger():
     agent = SystemArchitectAgent()
@@ -20,6 +22,7 @@ def test_architect_microservices_trigger():
     assert any("OrderSvc" in c for c in arch.compute_nodes)
     assert any("CDN" in c for c in arch.infra_components)
 
+
 def test_architect_monolith_trigger():
     agent = SystemArchitectAgent()
     prd = PRDExtraction(
@@ -33,6 +36,7 @@ def test_architect_monolith_trigger():
     assert arch.topology == "Modular Monolith"
     assert any("CoreService" in c for c in arch.compute_nodes)
 
+
 def test_database_designer_topological_sort_and_engines():
     agent = DatabaseDesignerAgent()
     user_ent = EntitySpec(name="User")
@@ -44,7 +48,7 @@ def test_database_designer_topological_sort_and_engines():
         expected_rps=12000,
         max_latency_ms=25,
         availability_sla="99.99%",
-        entities=[payment_ent, order_ent, user_ent]  # Intentionally out of dependency order
+        entities=[payment_ent, order_ent, user_ent]
     )
     arch = ArchitectureOutput()
     agent.process(prd, arch)
@@ -54,7 +58,7 @@ def test_database_designer_topological_sort_and_engines():
     assert "CacheLayer" in arch.data_stores
     assert "HighWriteStore" in arch.data_stores
 
-    # Verify topological order in DDL: User should appear before Order and Payment
+    # Verify topological order in DDL
     table_names = list(arch.tables_ddl.keys())
     assert table_names.index("User") < table_names.index("Order")
     assert table_names.index("Order") < table_names.index("Payment")
@@ -62,6 +66,47 @@ def test_database_designer_topological_sort_and_engines():
     # Verify foreign key and index generation
     assert any("user_id" in col for col in arch.tables_ddl["Order"])
     assert any("idx_order_user_id" in idx for idx in arch.indexes)
+
+
+def test_database_designer_multiword_entity_foreign_key():
+    agent = DatabaseDesignerAgent()
+
+    order_ent = EntitySpec(
+        name="Order",
+        relations=["Delivery Partner"]
+    )
+    delivery_partner_ent = EntitySpec(
+        name="Delivery Partner"
+    )
+
+    prd = PRDExtraction(
+        project_name="FoodDeliveryApp",
+        entities=[order_ent, delivery_partner_ent]
+    )
+
+    arch = ArchitectureOutput()
+    agent.process(prd, arch)
+
+    order_columns = arch.tables_ddl["Order"]
+
+    # Verify the multi-word entity becomes a valid SQL identifier
+    assert any(
+        "delivery_partner_id UUID NOT NULL" in column
+        for column in order_columns
+    )
+
+    # Verify the foreign key references the normalized table name
+    assert any(
+        "REFERENCES delivery_partner(id)" in column
+        for column in order_columns
+    )
+
+    # Verify the corresponding foreign-key index is generated
+    assert any(
+        "idx_order_delivery_partner_id" in index
+        for index in arch.indexes
+    )
+
 
 def test_security_infrastructure_compliance():
     agent = SecurityInfrastructureAgent()

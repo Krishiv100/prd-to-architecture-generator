@@ -1,6 +1,10 @@
+import os
 import re
 from typing import Dict, List, Optional, Set
+
+from dotenv import load_dotenv
 from src.state.prd_schema import PRDExtraction, EntitySpec
+from src.llm.prd_extractor import GeminiPRDExtractor
 
 # Curated domain entities dictionary for semantic text discovery
 KNOWN_DOMAIN_ENTITIES = {
@@ -50,7 +54,7 @@ class RequirementAnalyzerAgent:
         base = ["id UUID PRIMARY KEY", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"]
         n_low = name.lower()
 
-        if any(w in n_low for w in ["user", "customer", "rider", "driver", "doctor", "patient"]):
+        if any(w in n_low for w in ["user", "customer", "rider", "driver", "delivery partner", "doctor", "patient"]):
             return base + [
                 "email VARCHAR(255) UNIQUE NOT NULL",
                 "full_name VARCHAR(255) NOT NULL",
@@ -98,6 +102,36 @@ class RequirementAnalyzerAgent:
         else:
             return base + ["status VARCHAR(50) DEFAULT 'ACTIVE'"]
 
+    def _normalize_relationships(self, entities: List[EntitySpec]) -> None:
+        """Convert natural-language relationships into exact entity names."""
+
+        entity_names = [entity.name for entity in entities]
+
+        for entity in entities:
+            normalized = []
+
+            for relation in entity.relations:
+                relation_lower = relation.lower().strip()
+
+                matches = [
+                    name
+                    for name in entity_names
+                    if name.lower() != entity.name.lower()
+                    and re.search(
+                        rf"\b{re.escape(name.lower())}\b",
+                        relation_lower
+                    )
+                ]
+
+                if matches:
+                    # Prefer the longest match to avoid partial-name matches.
+                    target = max(matches, key=len)
+
+                    if target not in normalized:
+                        normalized.append(target)
+
+            entity.relations = normalized
+
     def _infer_relationships(self, entities: Dict[str, EntitySpec], raw_text: str) -> None:
         """Discovers domain relationships between entities based on text hints and known patterns."""
         names = set(entities.keys())
@@ -140,7 +174,7 @@ class RequirementAnalyzerAgent:
                     if parent in entities and parent not in entities[child].relations:
                         entities[child].relations.append(parent)
 
-    def analyze(self, raw_prd: str) -> PRDExtraction:
+    def _analyze_rule_based(self, raw_prd: str) -> PRDExtraction:
         raw_clean = raw_prd.strip()
 
         # 1. Project Title Extraction
@@ -358,3 +392,46 @@ class RequirementAnalyzerAgent:
             compliance=compliance,
             realtime_features=realtime,
         )
+        
+    def analyze(self, raw_prd: str) -> PRDExtraction:
+        """Use Gemini when enabled; otherwise use rule-based extraction."""
+
+        load_dotenv()
+
+        use_gemini = os.getenv("USE_GEMINI", "false").lower() == "true"
+
+        if use_gemini:
+            try:
+                result = GeminiPRDExtractor().extract(raw_prd)
+
+                # Merge Gemini fields with deterministic default fields.
+                for entity in result.entities:
+                    inferred_fields = self._infer_fields_for_entity(entity.name)
+
+                    if not entity.fields:
+                        entity.fields = inferred_fields
+                    else:
+                        existing_fields = {
+                            field.strip().lower()
+                            for field in entity.fields
+                        }
+
+                        for field in inferred_fields:
+                            field_name = field.split()[0].lower()
+
+                            if field_name not in existing_fields:
+                                entity.fields.append(field)
+                                existing_fields.add(field_name)
+
+                # Convert natural-language relationships to exact entity names.
+                self._normalize_relationships(result.entities)
+
+                return result
+
+            except Exception as error:
+                print(
+                    f"Gemini extraction failed. "
+                    f"Using rule-based fallback: {error}"
+                )
+
+        return self._analyze_rule_based(raw_prd)

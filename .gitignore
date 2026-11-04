@@ -32,3 +32,6 @@ desktop.ini
 # Environment variables
 .env
 .env.*
+
+# Gemini test outputs
+outputs_gemini_test/
